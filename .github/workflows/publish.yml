@@ -20,15 +20,19 @@ jobs:
     container:
       image: archlinux:base-devel
     steps:
+      - name: Install git and build prerequisites
+        # archlinux:base-devel 镜像不含 git；必须先装 git，否则后续 checkout
+        # 会静默回退为 REST 快照（无 .git），导致提交与推送步骤全部失败。
+        run: |
+          pacman -Syu --noconfirm --needed git sudo namcap
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/builder
+
       - name: Check out packaging repository
         uses: actions/checkout@v6
 
-      - name: Prepare container and build user
-        run: |
-          pacman -Syu --noconfirm --needed namcap
-          useradd -m builder
-          echo 'builder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/builder
-          chown -R builder:builder "$GITHUB_WORKSPACE"
+      - name: Hand workspace to build user
+        run: chown -R builder:builder "$GITHUB_WORKSPACE"
 
       - name: Build package
         run: sudo -u builder -- makepkg -s --noconfirm --clean --cleanbuild
