@@ -24,7 +24,7 @@ jobs:
         # archlinux:base-devel 镜像不含 git；必须先装 git，否则后续 checkout
         # 会静默回退为 REST 快照（无 .git），导致提交与推送步骤全部失败。
         run: |
-          pacman -Syu --noconfirm --needed git sudo namcap
+          pacman -Syu --noconfirm --needed git sudo namcap openssh
           useradd -m builder
           echo 'builder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/builder
 
