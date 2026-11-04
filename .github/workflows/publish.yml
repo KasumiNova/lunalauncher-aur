@@ -1,0 +1,74 @@
+name: Publish to AUR
+
+on:
+  push:
+    branches: [main]
+    paths: ['PKGBUILD']
+  workflow_dispatch:
+
+concurrency:
+  group: aur-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Build, verify and push
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Check out packaging repository
+        uses: actions/checkout@v6
+
+      - name: Prepare container and build user
+        run: |
+          pacman -Syu --noconfirm --needed namcap
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+
+      - name: Build package
+        run: sudo -u builder -- makepkg -s --noconfirm --clean --cleanbuild
+
+      - name: Lint with namcap
+        run: |
+          namcap PKGBUILD
+          namcap ./*.pkg.tar.zst
+
+      - name: Regenerate .SRCINFO
+        run: |
+          sudo -u builder -- makepkg --printsrcinfo > .SRCINFO
+          rm -f ./*.pkg.tar.zst
+
+      - name: Commit .SRCINFO back to repository
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PKGBUILD .SRCINFO
+          if git diff --cached --quiet; then
+            echo 'No packaging changes to commit.'
+            exit 0
+          fi
+          pkgver_now=$(sed -n 's/^pkgver = //p' .SRCINFO | head -n1)
+          git commit -m "Update lunalauncher-git to ${pkgver_now}"
+          git push origin HEAD:main
+
+      - name: Push to AUR
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur_key
+          chmod 600 ~/.ssh/aur_key
+          ssh-keyscan -H aur.archlinux.org >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND='ssh -i ~/.ssh/aur_key -o IdentitiesOnly=yes'
+          git fetch ssh://aur@aur.archlinux.org/lunalauncher-git.git master:refs/remotes/aur/master || true
+          if git rev-parse --verify refs/remotes/aur/master >/dev/null 2>&1 \
+            && ! git merge-base --is-ancestor refs/remotes/aur/master HEAD; then
+            echo 'AUR remote has commits not present in this repository; manual resync required.' >&2
+            exit 1
+          fi
+          git push ssh://aur@aur.archlinux.org/lunalauncher-git.git HEAD:master
