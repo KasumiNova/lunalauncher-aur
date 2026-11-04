@@ -30,6 +30,9 @@ jobs:
 
       - name: Check out packaging repository
         uses: actions/checkout@v6
+        with:
+          # AUR 拒绝浅克隆推送（shallow update not allowed），必须完整历史
+          fetch-depth: 0
 
       - name: Hand workspace to build user
         run: chown -R builder:builder "$GITHUB_WORKSPACE"
