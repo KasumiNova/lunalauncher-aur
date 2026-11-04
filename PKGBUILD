@@ -27,7 +27,7 @@ makedepends=(
   'cmake'           # meson 以 cmake 方式探测 Qt6
   'dotnet-sdk>=10.0' # YukariConnect 子项目构建（面向 .NET 10）
   'git'
-  'java-environment'
+  'jdk21-openjdk'   # 上游 Pixi 固定 openjdk 21；JDK 26+ 已移除 java.applet，旧版 MC applet 代码无法编译
   'meson'
   'ninja'
   'pkgconf'
@@ -59,6 +59,9 @@ build() {
   # qtpaths6 位于 /usr/lib/qt6/bin（不在 PATH 中），通过上游预留的环境变量
   # 直接指定 Qt 插件目录，跳过 meson 的 find_program 探测。
   export LUNA_QT_PLUGIN_DIR="$(/usr/lib/qt6/bin/qtpaths6 --query QT_INSTALL_PLUGINS)"
+
+  # 强制使用 JDK 21 的 javac，避免系统默认 JDK（26+，已移除 java.applet）被选中。
+  export PATH="/usr/lib/jvm/java-21-openjdk/bin:$PATH"
 
   meson setup build LunaLauncher --prefix=/usr --buildtype=release \
     -Dbuild_testing=false \

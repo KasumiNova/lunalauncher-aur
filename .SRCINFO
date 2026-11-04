@@ -9,7 +9,7 @@ pkgbase = lunalauncher-git
 	makedepends = cmake
 	makedepends = dotnet-sdk>=10.0
 	makedepends = git
-	makedepends = java-environment
+	makedepends = jdk21-openjdk
 	makedepends = meson
 	makedepends = ninja
 	makedepends = pkgconf
