@@ -7,19 +7,20 @@ pkgbase = lunalauncher-git
 	license = GPL-3.0-or-later
 	makedepends = clang
 	makedepends = cmake
-	makedepends = dotnet-sdk
+	makedepends = dotnet-sdk>=10.0
 	makedepends = git
 	makedepends = java-environment
 	makedepends = meson
 	makedepends = ninja
 	makedepends = pkgconf
+	makedepends = qt6-imageformats
 	depends = gamemode
 	depends = hicolor-icon-theme
 	depends = java-runtime>=8
 	depends = libarchive
+	depends = libwebp
 	depends = qrencode
 	depends = qt6-base
-	depends = qt6-imageformats
 	depends = qt6-multimedia
 	depends = qt6-networkauth
 	depends = qt6-svg
@@ -29,6 +30,7 @@ pkgbase = lunalauncher-git
 	provides = lunalauncher
 	conflicts = lunalauncher
 	options = !debug
+	options = !lto
 	source = git+https://github.com/AndreaFrederica/LunaLauncher.git
 	sha256sums = SKIP
 

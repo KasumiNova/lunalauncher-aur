@@ -1,0 +1,6 @@
+# makepkg 构建产物
+LunaLauncher/
+src/
+pkg/
+*.pkg.tar.zst
+build.log

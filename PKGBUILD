@@ -6,15 +6,15 @@ pkgdesc='A custom Minecraft launcher based on Prism Launcher (git build with bun
 arch=('x86_64')
 url='https://github.com/AndreaFrederica/LunaLauncher'
 license=('GPL-3.0-or-later')
-options=('!debug')
+options=('!debug' '!lto')
 depends=(
   'gamemode'
   'hicolor-icon-theme'
   'java-runtime>=8'
   'libarchive'
+  'libwebp'         # 捆绑的 libqwebp.so 插件在运行期链接它
   'qrencode'
   'qt6-base'
-  'qt6-imageformats'
   'qt6-multimedia'
   'qt6-networkauth'
   'qt6-svg'
@@ -25,12 +25,13 @@ depends=(
 makedepends=(
   'clang'           # YukariConnect NativeAOT 发布需要
   'cmake'           # meson 以 cmake 方式探测 Qt6
-  'dotnet-sdk'      # YukariConnect 子项目构建
+  'dotnet-sdk>=10.0' # YukariConnect 子项目构建（面向 .NET 10）
   'git'
   'java-environment'
   'meson'
   'ninja'
   'pkgconf'
+  'qt6-imageformats' # 构建期拷贝 webp 插件进安装目录
 )
 provides=('lunalauncher')
 conflicts=('lunalauncher')
@@ -55,6 +56,10 @@ prepare() {
 }
 
 build() {
+  # qtpaths6 位于 /usr/lib/qt6/bin（不在 PATH 中），通过上游预留的环境变量
+  # 直接指定 Qt 插件目录，跳过 meson 的 find_program 探测。
+  export LUNA_QT_PLUGIN_DIR="$(/usr/lib/qt6/bin/qtpaths6 --query QT_INSTALL_PLUGINS)"
+
   meson setup build LunaLauncher --prefix=/usr --buildtype=release \
     -Dbuild_testing=false \
     -Dbuild_yukari_connect=true \
@@ -68,22 +73,4 @@ build() {
 
 package() {
   DESTDIR="$pkgdir" meson install -C build --no-rebuild
-
-  # quickjs 在构建期静态链接进启动器；其开发产物与 CLI 工具不属于运行时。
-  rm -f \
-    "$pkgdir/usr/bin/qjs" \
-    "$pkgdir/usr/bin/qjsc" \
-    "$pkgdir/usr/include/quickjs.h" \
-    "$pkgdir/usr/include/quickjs-libc.h" \
-    "$pkgdir/usr/lib/libqjs.a"
-
-  rm -rf \
-    "$pkgdir/usr/lib/cmake/quickjs" \
-    "$pkgdir/usr/share/doc/quickjs"
-
-  rmdir --ignore-fail-on-non-empty \
-    "$pkgdir/usr/include" \
-    "$pkgdir/usr/lib/cmake" \
-    "$pkgdir/usr/lib" \
-    "$pkgdir/usr/share/doc"
 }

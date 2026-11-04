@@ -26,6 +26,16 @@
   `build()` 中 `dotnet publish` 需还原 NuGet 包。不支持 devtools 离线
   clean chroot 构建。
 
+## 已知的 namcap 提示（均属预期，无需处理）
+
+- `ELF file outside of a valid path`（`usr/tools/yukariconnect/YukariConnect`、
+  `usr/imageformats/libqwebp.so`）：上游安装布局，启动器按该相对路径定位
+  这些文件，不可移动。
+- `Dependency included, but may not be needed ('gamemode')`：误报，
+  `Application.cpp` 直接调用 `gamemode_query_status()`（链接依赖）。
+- `!lto`：`/etc/makepkg.conf` 默认注入的 `-flto` 与 Qt6 protected symbol
+  链接冲突；上游官方构建本就不启用 LTO，此项为对齐而非裁剪。
+
 ## 自动化
 
 - `publish.yml`：`PKGBUILD` 变更推送到 `main` 时，先在 `archlinux:base-devel`
