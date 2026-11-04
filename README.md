@@ -54,8 +54,10 @@ AUR 包地址：`ssh://aur@aur.archlinux.org/lunalauncher-git.git`
 
 ## 手工操作备忘
 
-- **首次发布**：AUR 账号绑定公钥后，首次 `git push` 到上述地址即自动创建
+- **首次发布**：AUR 账号绑定公钥后，workflow 首次运行即自动创建
   `lunalauncher-git` 包。
-- **AUR 端被他人改动导致推送被拒**：手动
-  `git pull ssh://aur@aur.archlinux.org/lunalauncher-git.git master`
-  合并差异后推送回 `main`，再触发 `publish.yml`。
+- **AUR 端历史**：推送到 AUR 的是 CI 用 `commit-tree` 构造的扁平提交（仅
+  PKGBUILD + .SRCINFO，AUR 禁止子目录），以 AUR 端 master 为父提交逐次链接；
+  本仓库 `main` 与 AUR `master` 是两条独立历史，属预期设计。若 AUR 端被
+  co-maintainer 改动，下次推送会自动以其为父提交链上并覆盖内容，无需人工
+  干预。

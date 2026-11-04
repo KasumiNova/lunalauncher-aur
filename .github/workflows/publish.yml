@@ -77,10 +77,37 @@ jobs:
           chmod 600 /root/.ssh/aur_key
           ssh-keyscan -H aur.archlinux.org >> /root/.ssh/known_hosts
           export GIT_SSH_COMMAND='ssh -i /root/.ssh/aur_key -o IdentitiesOnly=yes -o UserKnownHostsFile=/root/.ssh/known_hosts'
-          git fetch ssh://aur@aur.archlinux.org/lunalauncher-git.git master:refs/remotes/aur/master || true
-          if git rev-parse --verify refs/remotes/aur/master >/dev/null 2>&1 \
-            && ! git merge-base --is-ancestor refs/remotes/aur/master HEAD; then
-            echo 'AUR remote has commits not present in this repository; manual resync required.' >&2
-            exit 1
+          aur_remote=ssh://aur@aur.archlinux.org/lunalauncher-git.git
+          git fetch "$aur_remote" master:refs/remotes/aur/master || true
+
+          # AUR 包仓库不允许子目录：用临时索引构造仅含打包文件的扁平提交，
+          # 并以 AUR 端当前 master 为父提交，保持快进历史。
+          tmp_index=$(mktemp)
+          trap 'rm -f "$tmp_index"' EXIT
+          export GIT_INDEX_FILE="$tmp_index"
+          export GIT_AUTHOR_NAME='github-actions[bot]'
+          export GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com'
+          export GIT_COMMITTER_NAME='github-actions[bot]'
+          export GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com'
+
+          parent=$(git rev-parse --verify refs/remotes/aur/master 2>/dev/null || true)
+          if [ -n "$parent" ]; then
+            git read-tree "$parent"
+          else
+            git read-tree --empty
           fi
-          git push ssh://aur@aur.archlinux.org/lunalauncher-git.git HEAD:master
+          git add PKGBUILD .SRCINFO
+          tree=$(git write-tree)
+
+          if [ -n "$parent" ] && [ "$tree" = "$(git rev-parse "$parent^{tree}")" ]; then
+            echo 'AUR content unchanged; nothing to push.'
+            exit 0
+          fi
+
+          pkgver_now=$(sed -n 's/^pkgver = //p' .SRCINFO | head -n1)
+          if [ -n "$parent" ]; then
+            commit=$(git commit-tree "$tree" -p "$parent" -m "Update lunalauncher-git to ${pkgver_now}")
+          else
+            commit=$(git commit-tree "$tree" -m "Import lunalauncher-git ${pkgver_now}")
+          fi
+          git push "$aur_remote" "$commit:refs/heads/master"
