@@ -5,6 +5,7 @@ pkgbase = lunalauncher-git
 	url = https://github.com/AndreaFrederica/LunaLauncher
 	arch = x86_64
 	license = GPL-3.0-or-later
+	makedepends = aspnet-targeting-pack>=10.0
 	makedepends = clang
 	makedepends = cmake
 	makedepends = dotnet-sdk>=10.0

@@ -23,6 +23,7 @@ depends=(
   'zlib'
 )
 makedepends=(
+  'aspnet-targeting-pack>=10.0' # YukariConnect 引用 Microsoft.AspNetCore.App 框架
   'clang'           # YukariConnect NativeAOT 发布需要
   'cmake'           # meson 以 cmake 方式探测 Qt6
   'dotnet-sdk>=10.0' # YukariConnect 子项目构建（面向 .NET 10）
