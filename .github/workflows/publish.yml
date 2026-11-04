@@ -67,11 +67,13 @@ jobs:
           AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur_key
-          chmod 600 ~/.ssh/aur_key
-          ssh-keyscan -H aur.archlinux.org >> ~/.ssh/known_hosts
-          export GIT_SSH_COMMAND='ssh -i ~/.ssh/aur_key -o IdentitiesOnly=yes'
+          # 容器作业中 $HOME=/github/home，但 ssh 按 root 的 pw_dir 读 /root/.ssh，
+          # 一律使用显式路径避免错位。
+          install -d -m 700 /root/.ssh
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > /root/.ssh/aur_key
+          chmod 600 /root/.ssh/aur_key
+          ssh-keyscan -H aur.archlinux.org >> /root/.ssh/known_hosts
+          export GIT_SSH_COMMAND='ssh -i /root/.ssh/aur_key -o IdentitiesOnly=yes -o UserKnownHostsFile=/root/.ssh/known_hosts'
           git fetch ssh://aur@aur.archlinux.org/lunalauncher-git.git master:refs/remotes/aur/master || true
           if git rev-parse --verify refs/remotes/aur/master >/dev/null 2>&1 \
             && ! git merge-base --is-ancestor refs/remotes/aur/master HEAD; then
